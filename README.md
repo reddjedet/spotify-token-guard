@@ -1,15 +1,23 @@
 # Spotify Token Guard para Antigravity
 
-Implementacion modular y portable del patron de delegacion jerarquica presentado por el equipo de ingenieria de Spotify para reducir hasta un 90% el consumo de tokens en lecturas de archivos y generacion de boilerplate.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Harness de orquestacion multi-agente con gating determinista para Google Antigravity. Implementa el patron de delegacion jerarquica publicado por el equipo de ingenieria de Spotify para reducir hasta un 90% el consumo de tokens en lecturas de archivos extensos y generacion de codigo repetitivo.
+
+---
 
 ## Como funciona
 
-1. **Intercepcion Determinista (`PreToolUse` Hook)**: Monitorea llamadas a la herramienta `view_file`. Si un archivo supera las 350 lineas y no se especifico un rango acotado (`StartLine`/`EndLine`), bloquea la lectura devolviendo una decision de rechazo con instrucciones al modelo.
-2. **Delegacion a Subagentes Economicos**: El modelo principal (Orquestador / Tech Lead) delega lecturas extensas a subagentes de tipo `research` (`Model: "flash_lite"` o `"flash"`) que extraen unicamente el resumen o bloque requerido.
-3. **Generacion Directa a Disco**: Los subagentes de generacion repetitiva escriben codigo directamente a disco (`write_to_file`) sin volcar miles de lineas de codigo en el contexto del modelo principal.
-4. **Edicion Quirurgica**: El orquestador principal preserva su ventana de contexto libre de ruido para decisiones arquitectonicas y ediciones puntuales mediante rangos exactos.
+1. **Intercepcion Determinista (`PreToolUse` Hook)**: Intercepta las llamadas a `view_file`. Si un archivo supera las 350 lineas y no se especifico un rango acotado (`StartLine`/`EndLine`), bloquea la lectura devolviendo una decision de rechazo (`deny`) con instrucciones precisas al modelo.
+2. **Delegacion a Subagentes Economicos**: El modelo principal (Tech Lead / Orquestador) delega lecturas pesadas a subagentes de tipo `research` (`Model: "flash_lite"` o `"flash"`), quienes extraen unicamente el resumen o bloque requerido.
+3. **Generacion Directa a Disco**: Los subagentes de generacion repetitiva (boilerplate, tests unitarios, DTOs) escriben el codigo directamente a disco (`write_to_file`) sin volcar cientos de lineas en la ventana de contexto del modelo principal.
+4. **Edicion Quirurgica**: El orquestador principal preserva su ventana de contexto libre de ruido para decisiones arquitectonicas y modificaciones puntuales mediante rangos exactos (`replace_file_content`).
+
+---
 
 ## Estructura generada en el proyecto
+
+Al instalarse en un proyecto, genera de forma aislada:
 
 ```text
 .agents/
@@ -20,28 +28,56 @@ Implementacion modular y portable del patron de delegacion jerarquica presentado
     └── token_efficiency.md
 ```
 
-## Instalacion rapida
+---
 
-### Opcion A: En el directorio actual
-Desde la raiz del proyecto donde desees aplicar la optimizacion:
+## Instalacion
+
+### Opcion 1: En un proyecto local (con el repo clonado)
+
+Desde la raiz del proyecto donde deseas aplicar la optimizacion:
 ```bash
 /ruta/a/spotify-token-guard/install.sh
 ```
-
-### Opcion B: Indicando la ruta de destino
+O indicando la ruta destino como argumento:
 ```bash
 /ruta/a/spotify-token-guard/install.sh /ruta/al/proyecto
 ```
 
-### Opcion C: Descarga directa via curl (una vez subido a GitHub)
+---
+
+### Opcion 2: Instalacion remota via `curl`
+
+Para usarlo en cualquier maquina sin necesidad de clonar este repositorio:
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TU_USUARIO/spotify-token-guard/main/install.sh | bash
+# Recomendado (inspeccionar el script antes de ejecutar):
+curl -fsSL https://raw.githubusercontent.com/reddjedet/spotify-token-guard/main/install.sh -o install.sh
+bash install.sh
+rm install.sh
+
+# O instalacion directa en una linea:
+curl -fsSL https://raw.githubusercontent.com/reddjedet/spotify-token-guard/main/install.sh | bash
 ```
 
-## Requisitos
-- Python 3.8 o superior (utiliza unicamente modulos de la biblioteca estandar: `json`, `os`, `sys`).
-- Antigravity CLI / IDE con soporte para `.agents/hooks.json`.
+---
 
-## Desactivacion o reversion
-- **Desactivar temporalmente**: Editar `.agents/hooks.json` y cambiar `"enabled": true` a `"enabled": false`.
-- **Eliminar por completo**: Borrar el archivo `.agents/hooks.json`, el script `.agents/scripts/guard_large_files.py` y la regla `.agents/rules/token_efficiency.md`.
+## Requisitos
+
+- **Python 3.8+** (utiliza unicamente modulos de la biblioteca estandar: `json`, `os`, `sys`; no requiere dependencias externas ni `pip`).
+- **Antigravity CLI / IDE** con soporte para `.agents/hooks.json`.
+
+---
+
+## Desactivacion y Reversion
+
+- **Desactivar temporalmente**: En `.agents/hooks.json`, cambia `"enabled": true` por `"enabled": false`.
+- **Eliminar por completo**:
+  ```bash
+  rm -rf .agents/hooks.json .agents/scripts/guard_large_files.py .agents/rules/token_efficiency.md
+  ```
+
+---
+
+## Licencia
+
+Distribuido bajo la Licencia MIT. Consulta [LICENSE](LICENSE) para mas detalles.
